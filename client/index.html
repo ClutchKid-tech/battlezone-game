@@ -1,195 +1,905 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="BattleZone — Browser-based 100-player Battle Royale">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BATTLEZONE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Bebas+Neue&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --orange: #FF6B1A;
+      --orange-dim: #CC4A00;
+      --orange-glow: rgba(255, 107, 26, 0.35);
+      --red: #E8230A;
+      --gold: #F0C040;
+      --dark-1: #080A0C;
+      --dark-2: #0D1117;
+      --dark-3: #141B22;
+      --dark-4: #1C2630;
+      --mid: #2A3A4A;
+      --text-bright: #F0EDE8;
+      --text-mid: #A8A09A;
+      --text-dim: #5A5550;
+      --panel-bg: rgba(8, 12, 18, 0.88);
+      --panel-border: rgba(255, 107, 26, 0.25);
+    }
+
     html, body {
-      width: 100%; height: 100%;
+      height: 100%;
+      background: var(--dark-1);
+      color: var(--text-bright);
+      font-family: 'Exo 2', sans-serif;
       overflow: hidden;
-      background: #0a0a1a;
-      font-family: 'Segoe UI', system-ui, sans-serif;
     }
 
+    /* ─── GAME CANVAS (Three.js — hidden behind auth screen) ─── */
     #game-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
       display: block;
-      width: 100vw; height: 100vh;
+      width: 100vw;
+      height: 100vh;
     }
 
-    /* ── Auth screen ───────────────────────────────────────────────── */
+    /* ─── AUTH SCREEN WRAPPER ─── */
     #auth-screen {
-      position: fixed; inset: 0;
-      background: linear-gradient(135deg, #0a0a1a 0%, #0d1a2e 60%, #0a1a0a 100%);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 2000; color: #fff;
+      position: fixed;
+      inset: 0;
+      z-index: 5;
     }
 
-    .auth-box {
-      background: rgba(255,255,255,0.05);
+    /* ─── BG CANVAS ─── */
+    #bg-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* ─── SCANLINES ─── */
+    .scanlines {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0,0,0,0.08) 3px,
+        rgba(0,0,0,0.08) 4px
+      );
+    }
+
+    /* ─── VIGNETTE ─── */
+    .vignette {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center,
+        transparent 40%,
+        rgba(0,0,0,0.6) 100%
+      );
+    }
+
+    /* ─── HUD CORNERS ─── */
+    .corner {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .corner-tl { top: 20px; left: 20px; border-top: 2px solid var(--orange); border-left: 2px solid var(--orange); }
+    .corner-tr { top: 20px; right: 20px; border-top: 2px solid var(--orange); border-right: 2px solid var(--orange); }
+    .corner-bl { bottom: 20px; left: 20px; border-bottom: 2px solid var(--orange); border-left: 2px solid var(--orange); }
+    .corner-br { bottom: 20px; right: 20px; border-bottom: 2px solid var(--orange); border-right: 2px solid var(--orange); }
+
+    /* ─── TOP STATUS BAR ─── */
+    .status-bar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 36px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 36px;
+      background: rgba(8, 12, 18, 0.75);
+      border-bottom: 1px solid rgba(255,107,26,0.15);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
+    }
+    .status-bar .live { color: var(--red); }
+    .status-bar .live::before {
+      content: '';
+      display: inline-block;
+      width: 7px; height: 7px;
+      background: var(--red);
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: blink 1.4s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    /* ─── MAIN LAYOUT ─── */
+    .layout {
+      position: absolute;
+      inset: 0;
+      z-index: 15;
+      display: grid;
+      grid-template-columns: 1fr 440px 1fr;
+      align-items: center;
+      padding: 60px 60px 40px;
+    }
+
+    /* ─── LEFT SIDE INFO ─── */
+    .side-info {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .stat-block {
+      border-left: 2px solid var(--orange);
+      padding-left: 16px;
+      animation: fadeUp 0.8s ease both;
+    }
+    .stat-block:nth-child(1) { animation-delay: 0.4s; }
+    .stat-block:nth-child(2) { animation-delay: 0.6s; }
+    .stat-block:nth-child(3) { animation-delay: 0.8s; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .stat-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 42px;
+      color: var(--text-bright);
+      line-height: 1;
+      letter-spacing: 0.05em;
+    }
+    .stat-value span { color: var(--orange); }
+    .stat-sub {
+      font-size: 12px;
+      color: var(--text-mid);
+      margin-top: 2px;
+    }
+
+    /* ─── CENTER PANEL ─── */
+    .center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* ─── LOGO ─── */
+    .logo-wrap {
+      text-align: center;
+      margin-bottom: 32px;
+      animation: fadeDown 0.7s ease both;
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo-eyebrow {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.4em;
+      color: var(--orange);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      opacity: 0.9;
+    }
+
+    .logo-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 92px;
+      line-height: 0.9;
+      letter-spacing: 0.08em;
+      color: var(--text-bright);
+      text-shadow:
+        0 0 40px rgba(255,107,26,0.4),
+        0 0 80px rgba(255,107,26,0.15);
+      position: relative;
+    }
+
+    .logo-title::after {
+      content: 'BATTLEZONE';
+      position: absolute;
+      inset: 0;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(255,107,26,0.3);
+      letter-spacing: 0.08em;
+      font-size: 92px;
+      font-family: 'Bebas Neue', sans-serif;
+    }
+
+    .logo-sub {
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 300;
+      font-size: 13px;
+      letter-spacing: 0.35em;
+      color: var(--text-mid);
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    .logo-line {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--orange), transparent);
+      margin-top: 20px;
+      opacity: 0.6;
+    }
+
+    /* ─── AUTH PANEL ─── */
+    .auth-panel {
+      width: 100%;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      padding: 32px 36px;
+      position: relative;
+      clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+      animation: fadeUp 0.7s ease 0.3s both;
+    }
+
+    .auth-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--orange), transparent);
+    }
+
+    /* ─── TABS ─── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 28px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 0;
+      text-align: center;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.2s, border-color 0.2s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .tab.active {
+      color: var(--orange);
+      border-bottom-color: var(--orange);
+    }
+    .tab:hover:not(.active) { color: var(--text-mid); }
+
+    /* ─── FORM ─── */
+    .form-section { display: none; }
+    .form-section.active { display: block; }
+
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%;
+      height: 44px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 2px;
+      padding: 0 14px;
+      color: var(--text-bright);
+      font-family: 'Exo 2', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .field input:focus {
+      border-color: var(--orange);
+      background: rgba(255,107,26,0.05);
+    }
+    .field input::placeholder { color: var(--text-dim); }
+
+    .btn-primary {
+      width: 100%;
+      height: 50px;
+      margin-top: 8px;
+      background: var(--orange);
+      border: none;
+      color: var(--dark-1);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      cursor: pointer;
+      clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-primary:hover { background: #FF8040; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+    .divider span {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
+    }
+
+    .btn-ghost {
+      width: 100%;
+      height: 44px;
+      background: transparent;
       border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 16px; padding: 40px;
-      width: 380px; display: flex; flex-direction: column; gap: 14px;
+      color: var(--text-mid);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost:hover { border-color: rgba(255,255,255,0.3); color: var(--text-bright); }
+
+    .terms {
+      margin-top: 14px;
+      text-align: center;
+      font-size: 10px;
+      color: var(--text-dim);
+      line-height: 1.5;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .terms a { color: rgba(255,107,26,0.7); text-decoration: none; }
+
+    /* ─── RIGHT SIDE INFO ─── */
+    .right-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 28px;
+    }
+    .right-info .stat-block {
+      text-align: right;
+      border-left: none;
+      border-right: 2px solid var(--orange);
+      padding-left: 0;
+      padding-right: 16px;
     }
 
-    .auth-box h1 {
-      font-size: 28px; font-weight: 900; text-align: center;
-      background: linear-gradient(90deg,#4af,#f4a);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      margin-bottom: 8px; letter-spacing: -1px;
+    /* ─── BOTTOM BAR ─── */
+    .bottom-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 40px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 36px;
+      background: rgba(8, 12, 18, 0.8);
+      border-top: 1px solid rgba(255,107,26,0.12);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
     }
+    .bottom-bar .version { color: var(--orange); opacity: 0.7; }
 
-    .auth-box input {
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 8px; padding: 12px 14px;
-      color: #fff; font-size: 15px; outline: none;
-      transition: border-color 0.15s;
+    /* ─── ERROR MESSAGE ─── */
+    .error-msg {
+      display: none;
+      background: rgba(232,35,10,0.12);
+      border: 1px solid rgba(232,35,10,0.35);
+      color: #FF6B6B;
+      font-size: 12px;
+      padding: 8px 12px;
+      margin-bottom: 14px;
+      font-family: 'Share Tech Mono', monospace;
+      letter-spacing: 0.08em;
     }
-    .auth-box input:focus { border-color: #4af; }
-    .auth-box input::placeholder { color: rgba(255,255,255,0.35); }
+    .error-msg.show { display: block; }
 
-    .auth-btn {
-      padding: 12px; border-radius: 8px; border: none;
-      font-size: 15px; font-weight: 700; cursor: pointer;
-      letter-spacing: 1px; transition: opacity 0.15s;
+    /* ─── LOADING OVERLAY ─── */
+    .loading-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      background: var(--dark-1);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
     }
-    .auth-btn:hover { opacity: 0.85; }
-    .auth-btn-primary { background: linear-gradient(90deg,#1a5a8a,#2a8aba); color: #fff; }
-    .auth-btn-secondary { background: rgba(255,255,255,0.08); color: #ccc; border: 1px solid rgba(255,255,255,0.15) !important; }
-
-    #auth-error { color: #f88; font-size: 13px; display: none; text-align: center; }
-    #auth-divider { text-align: center; opacity: 0.3; font-size: 13px; }
-
-    /* ── Global animations ─────────────────────────────────────────── */
-    @keyframes fadeInDown {
-      from { opacity: 0; transform: translateY(-20px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .loading-overlay.show { display: flex; }
+    .load-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 64px;
+      color: var(--orange);
+      letter-spacing: 0.1em;
+      animation: pulse 1.5s ease-in-out infinite;
     }
-    @keyframes fadeInRight {
-      from { opacity: 0; transform: translateX(20px); }
-      to   { opacity: 1; transform: translateX(0); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .load-bar-wrap {
+      width: 320px;
+      height: 4px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.5; }
+    .load-bar {
+      height: 100%;
+      background: var(--orange);
+      width: 0%;
+      transition: width 0.4s ease;
     }
-
-    /* ── Scrollbar ─────────────────────────────────────────────────── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
-
-    /* ── Context menu blocker ──────────────────────────────────────── */
-    canvas { user-select: none; -webkit-user-select: none; }
+    .load-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.2em;
+    }
   </style>
 </head>
 <body>
 
-  <!-- 3D canvas -->
+  <!-- Three.js game canvas (behind auth screen) -->
   <canvas id="game-canvas"></canvas>
 
-  <!-- Auth screen (shown before login) -->
+  <!-- Auth screen — entire login UI lives here, hidden after login -->
   <div id="auth-screen">
-    <div class="auth-box">
-      <h1>BATTLEZONE</h1>
+    <canvas id="bg-canvas"></canvas>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
 
-      <input id="auth-username"  type="text"     placeholder="Username" autocomplete="username">
-      <input id="auth-email"     type="email"    placeholder="Email (register only)" autocomplete="email">
-      <input id="auth-password"  type="password" placeholder="Password" autocomplete="current-password">
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
 
-      <div id="auth-error"></div>
-
-      <button id="auth-login-btn"    class="auth-btn auth-btn-primary">LOGIN</button>
-      <div class="auth-divider" id="auth-divider">— or —</div>
-      <button id="auth-register-btn" class="auth-btn auth-btn-secondary">CREATE ACCOUNT</button>
-
-      <div style="text-align:center;font-size:11px;opacity:0.3;margin-top:8px;">
-        By playing you agree to our Terms of Service and Privacy Policy
-      </div>
+    <div class="status-bar">
+      <span><span class="live"></span>SERVERS ONLINE</span>
+      <span id="player-count">LOADING PLAYER COUNT...</span>
+      <span id="clock">--:--:-- UTC</span>
     </div>
-  </div>
 
-  <!-- Auth — inline so it works even if the game bundle has issues -->
-  <script>
-  (function () {
-    var authEl = document.getElementById('auth-screen');
-    var errorEl = document.getElementById('auth-error');
+    <div class="layout">
 
-    // If already logged in, hide auth immediately
-    try {
-      if (sessionStorage.getItem('token') && sessionStorage.getItem('user')) {
-        authEl.style.display = 'none';
-      }
-    } catch(e) {}
+      <!-- LEFT STATS -->
+      <div class="side-info">
+        <div class="stat-block">
+          <div class="stat-label">Active Players</div>
+          <div class="stat-value"><span id="stat-players">24,817</span></div>
+          <div class="stat-sub">Across all regions</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Matches Today</div>
+          <div class="stat-value"><span>8,<span id="stat-matches">342</span></span></div>
+          <div class="stat-sub">Solo · Duo · Squad</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Season</div>
+          <div class="stat-value"><span>01</span></div>
+          <div class="stat-sub">Operation: Ghost Fire</div>
+        </div>
+      </div>
 
-    function showError(msg) {
-      if (!errorEl) return;
-      errorEl.textContent = msg;
-      errorEl.style.display = 'block';
-    }
-    function clearError() {
-      if (errorEl) errorEl.style.display = 'none';
-    }
+      <!-- CENTER AUTH -->
+      <div class="center">
+        <div class="logo-wrap">
+          <div class="logo-eyebrow">▶ ENTER THE ZONE</div>
+          <div class="logo-title">BATTLEZONE</div>
+          <div class="logo-sub">100 Players · Last Squad Standing</div>
+          <div class="logo-line"></div>
+        </div>
 
-    async function doAuth(path, body) {
-      var res = await fetch('/api/auth/' + path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      });
-      var data = await res.json().catch(function() { return {}; });
-      if (!res.ok) throw new Error(data.error || data.message || res.statusText);
-      return data;
-    }
+        <div class="auth-panel">
+          <div class="tabs">
+            <button class="tab active" onclick="switchTab('login')">Login</button>
+            <button class="tab" onclick="switchTab('register')">Register</button>
+          </div>
 
-    function onSuccess(result) {
-      try {
-        sessionStorage.setItem('token', result.access);
-        sessionStorage.setItem('user', JSON.stringify({ id: result.userId, username: result.username }));
-      } catch(e) {}
-      authEl.style.display = 'none';
-      // Notify the game bundle that auth is complete
-      window.dispatchEvent(new CustomEvent('auth:success', { detail: result }));
-    }
+          <!-- LOGIN -->
+          <div class="form-section active" id="section-login">
+            <div class="error-msg" id="login-error"></div>
+            <div class="field">
+              <label>Username or Email</label>
+              <input type="text" id="login-user" placeholder="Enter username or email" autocomplete="username" />
+            </div>
+            <div class="field">
+              <label>Password</label>
+              <input type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password" />
+            </div>
+            <button class="btn-primary" id="login-btn" onclick="handleLogin()">DEPLOY INTO BATTLE</button>
+            <div class="divider"><span>OR</span></div>
+            <button class="btn-ghost" onclick="handleGuest()">PLAY AS GUEST</button>
+          </div>
 
-    document.getElementById('auth-login-btn').addEventListener('click', async function() {
-      clearError();
-      var username = document.getElementById('auth-username').value.trim();
-      var password = document.getElementById('auth-password').value;
-      if (!username || !password) { showError('Enter username and password'); return; }
-      try {
-        var result = await doAuth('login', { username: username, password: password });
-        onSuccess(result);
-      } catch(err) { showError(err.message); }
-    });
+          <!-- REGISTER -->
+          <div class="form-section" id="section-register">
+            <div class="error-msg" id="reg-error"></div>
+            <div class="field">
+              <label>Username</label>
+              <input type="text" id="reg-user" placeholder="Choose a callsign" />
+            </div>
+            <div class="field">
+              <label>Email</label>
+              <input type="email" id="reg-email" placeholder="Your email address" autocomplete="email" />
+            </div>
+            <div class="field">
+              <label>Password</label>
+              <input type="password" id="reg-pass" placeholder="Min. 8 characters" autocomplete="new-password" />
+            </div>
+            <button class="btn-primary" id="reg-btn" onclick="handleRegister()">CREATE SOLDIER</button>
+          </div>
 
-    document.getElementById('auth-register-btn').addEventListener('click', async function() {
-      clearError();
-      var username = document.getElementById('auth-username').value.trim();
-      var email    = document.getElementById('auth-email').value.trim();
-      var password = document.getElementById('auth-password').value;
-      if (!username || !email || !password) { showError('Fill in all fields'); return; }
-      try {
-        var result = await doAuth('register', { username: username, email: email, password: password });
-        onSuccess(result);
-      } catch(err) { showError(err.message); }
-    });
-  })();
-  </script>
+          <div class="terms">
+            By playing you agree to our
+            <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+          </div>
+        </div>
+      </div>
 
-  <!-- Stripe.js for payment processing (loaded async) -->
+      <!-- RIGHT STATS -->
+      <div class="right-info">
+        <div class="stat-block">
+          <div class="stat-label">Top Kill Leader</div>
+          <div class="stat-value"><span>GhostRifle</span></div>
+          <div class="stat-sub">38 kills · Solo match</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Server Region</div>
+          <div class="stat-value"><span>APAC</span></div>
+          <div class="stat-sub">Auto-selected · 12ms avg</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Map</div>
+          <div class="stat-value"><span>ASHFALL</span></div>
+          <div class="stat-sub">4km² · Active rotation</div>
+        </div>
+      </div>
+
+    </div><!-- /.layout -->
+
+    <div class="bottom-bar">
+      <span>© 2026 BATTLEZONE STUDIOS</span>
+      <span class="version">v1.0.0-ALPHA</span>
+      <span>BUILD 20260314</span>
+    </div>
+
+    <!-- LOADING OVERLAY (inside auth screen) -->
+    <div class="loading-overlay" id="loading">
+      <div class="load-logo">BATTLEZONE</div>
+      <div class="load-bar-wrap"><div class="load-bar" id="load-bar"></div></div>
+      <div class="load-text" id="load-text">CONNECTING TO SERVERS...</div>
+    </div>
+  </div><!-- /#auth-screen -->
+
+  <!-- Stripe.js -->
   <script src="https://js.stripe.com/v3/" async></script>
 
-  <!-- Game bundle (Vite builds this) -->
+  <script>
+    /* ─── SKIP AUTH IF ALREADY LOGGED IN ─── */
+    (function () {
+      try {
+        if (sessionStorage.getItem('token') && sessionStorage.getItem('user')) {
+          document.getElementById('auth-screen').style.display = 'none';
+        }
+      } catch(e) {}
+    })();
+
+    /* ─── PARTICLE / TERRAIN BACKGROUND ─── */
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, particles = [], terrain = [];
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+      buildTerrain();
+    }
+
+    function buildTerrain() {
+      terrain = [];
+      const pts = 80;
+      for (let i = 0; i <= pts; i++) {
+        terrain.push({
+          x: (i / pts) * W,
+          y: H * 0.68 + Math.sin(i * 0.18) * 60 + Math.sin(i * 0.07) * 90 + Math.random() * 20
+        });
+      }
+    }
+
+    class Particle {
+      constructor() { this.reset(); }
+      reset() {
+        this.x = Math.random() * W;
+        this.y = Math.random() * H;
+        this.vx = (Math.random() - 0.5) * 0.3;
+        this.vy = -Math.random() * 0.5 - 0.1;
+        this.life = 0;
+        this.maxLife = 200 + Math.random() * 300;
+        this.size = Math.random() * 1.5 + 0.3;
+        this.type = Math.random() > 0.7 ? 'ember' : 'ash';
+      }
+      update() {
+        this.x += this.vx + Math.sin(this.life * 0.04) * 0.3;
+        this.y += this.vy;
+        this.life++;
+        if (this.life > this.maxLife || this.y < -10) this.reset();
+      }
+      draw() {
+        const t = this.life / this.maxLife;
+        const alpha = t < 0.1 ? t * 10 * 0.5 : t > 0.8 ? (1 - t) * 5 * 0.5 : 0.5;
+        if (this.type === 'ember') {
+          ctx.fillStyle = `rgba(255, ${80 + Math.random()*60}, 20, ${alpha * 0.9})`;
+        } else {
+          ctx.fillStyle = `rgba(180, 170, 160, ${alpha * 0.3})`;
+        }
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+    let fogOffset = 0;
+    function drawBg() {
+      ctx.clearRect(0, 0, W, H);
+      const sky = ctx.createLinearGradient(0, 0, 0, H * 0.75);
+      sky.addColorStop(0, '#060810');
+      sky.addColorStop(0.4, '#0D1118');
+      sky.addColorStop(0.7, '#1A1008');
+      sky.addColorStop(1, '#2A1505');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, H * 0.75);
+      const glow = ctx.createRadialGradient(W * 0.5, H * 0.6, 0, W * 0.5, H * 0.6, W * 0.5);
+      glow.addColorStop(0, 'rgba(255, 80, 10, 0.18)');
+      glow.addColorStop(0.4, 'rgba(255, 40, 0, 0.06)');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, W, H);
+      fogOffset += 0.15;
+      for (let f = 0; f < 3; f++) {
+        ctx.save();
+        ctx.globalAlpha = 0.06 + f * 0.03;
+        const fogGrad = ctx.createLinearGradient(0, H * 0.55, 0, H * 0.72);
+        fogGrad.addColorStop(0, 'transparent');
+        fogGrad.addColorStop(0.5, `rgba(200, 130, 60, 0.8)`);
+        fogGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = fogGrad;
+        const offset = (fogOffset * (f + 1) * 0.4) % W;
+        ctx.beginPath();
+        ctx.moveTo(-offset, H * 0.55);
+        for (let x = 0; x <= W + 200; x += 30) {
+          ctx.lineTo(x - offset, H * 0.55 + Math.sin((x + fogOffset * (f + 1) * 2) * 0.012) * 20);
+        }
+        ctx.lineTo(W + 200, H);
+        ctx.lineTo(0, H);
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.fillStyle = '#0A0D12';
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 20) {
+        ctx.lineTo(x, H * 0.55 + Math.sin(x * 0.006) * 80 + Math.sin(x * 0.022) * 40);
+      }
+      ctx.lineTo(W, H);
+      ctx.fill();
+      ctx.fillStyle = '#070A0D';
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      terrain.forEach((p, i) => { i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 107, 26, 0.04)';
+      ctx.lineWidth = 0.5;
+      for (let x = 0; x < W; x += 80) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let y = 0; y < H; y += 80) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+      particles.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(drawBg);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+    drawBg();
+
+    /* ─── CLOCK ─── */
+    function updateClock() {
+      document.getElementById('clock').textContent =
+        new Date().toUTCString().split(' ')[4] + ' UTC';
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    /* ─── LIVE PLAYER COUNT ─── */
+    let baseCount = 24817;
+    setInterval(() => {
+      baseCount += Math.floor((Math.random() - 0.3) * 12);
+      baseCount = Math.max(20000, Math.min(35000, baseCount));
+      document.getElementById('stat-players').textContent = baseCount.toLocaleString();
+      document.getElementById('player-count').textContent = baseCount.toLocaleString() + ' PLAYERS ONLINE';
+    }, 3000);
+
+    /* ─── TABS ─── */
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => {
+        if (t.textContent.toLowerCase() === tab) t.classList.add('active');
+      });
+      document.getElementById('section-' + tab).classList.add('active');
+    }
+
+    /* ─── LOADING SEQUENCE → fires auth:success ─── */
+    function showLoading(messages, result) {
+      const overlay = document.getElementById('loading');
+      const bar     = document.getElementById('load-bar');
+      const text    = document.getElementById('load-text');
+      overlay.classList.add('show');
+      let step = 0;
+      function next() {
+        if (step >= messages.length) {
+          // Store session then tell the game engine
+          try {
+            sessionStorage.setItem('token', result.access);
+            sessionStorage.setItem('user', JSON.stringify({ id: result.userId, username: result.username }));
+          } catch(e) {}
+          document.getElementById('auth-screen').style.display = 'none';
+          window.dispatchEvent(new CustomEvent('auth:success', { detail: result }));
+          return;
+        }
+        text.textContent = messages[step];
+        bar.style.width = ((step + 1) / messages.length * 100) + '%';
+        step++;
+        setTimeout(next, 600 + Math.random() * 400);
+      }
+      next();
+    }
+
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg.toUpperCase();
+      el.classList.add('show');
+    }
+    function clearError(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+
+    /* ─── LOGIN ─── */
+    async function handleLogin() {
+      clearError('login-error');
+      const user = document.getElementById('login-user').value.trim();
+      const pass = document.getElementById('login-pass').value;
+      if (!user || !pass) { showError('login-error', 'All fields required.'); return; }
+      const btn = document.getElementById('login-btn');
+      btn.disabled = true; btn.textContent = 'AUTHENTICATING...';
+      try {
+        const res  = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ username: user, password: pass }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { showError('login-error', data.error || data.message || 'Login failed.'); btn.disabled = false; btn.textContent = 'DEPLOY INTO BATTLE'; return; }
+        showLoading([
+          'AUTHENTICATING SOLDIER...',
+          'LOADING ASSET MANIFEST...',
+          'CONNECTING TO REGION SERVERS...',
+          'INITIALISING GAME ENGINE...',
+          'READY FOR DEPLOYMENT',
+        ], data);
+      } catch(e) {
+        showError('login-error', 'Connection error. Check network.');
+        btn.disabled = false; btn.textContent = 'DEPLOY INTO BATTLE';
+      }
+    }
+
+    /* ─── REGISTER ─── */
+    async function handleRegister() {
+      clearError('reg-error');
+      const user  = document.getElementById('reg-user').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const pass  = document.getElementById('reg-pass').value;
+      if (!user || !email || !pass) { showError('reg-error', 'All fields required.'); return; }
+      if (pass.length < 8) { showError('reg-error', 'Password too short. Min 8 characters.'); return; }
+      const btn = document.getElementById('reg-btn');
+      btn.disabled = true; btn.textContent = 'CREATING SOLDIER...';
+      try {
+        const res  = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ username: user, email, password: pass }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { showError('reg-error', data.error || data.message || 'Registration failed.'); btn.disabled = false; btn.textContent = 'CREATE SOLDIER'; return; }
+        showLoading([
+          'CREATING SOLDIER PROFILE...',
+          'ASSIGNING CALLSIGN...',
+          'LOADING LOADOUT...',
+          'ENTERING THE ZONE',
+        ], data);
+      } catch(e) {
+        showError('reg-error', 'Connection error. Check network.');
+        btn.disabled = false; btn.textContent = 'CREATE SOLDIER';
+      }
+    }
+
+    /* ─── GUEST ─── */
+    function handleGuest() {
+      showLoading([
+        'GENERATING GUEST PROFILE...',
+        'LOADING SERVERS...',
+        'ENTERING AS GUEST',
+      ], { access: 'guest', userId: 'guest', username: 'Guest_' + Math.floor(Math.random()*9999) });
+    }
+
+    /* ─── ENTER KEY ─── */
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      const active = document.querySelector('.form-section.active');
+      if (active && active.id === 'section-login') handleLogin();
+      else if (active) handleRegister();
+    });
+  </script>
+
+  <!-- Game bundle -->
   <script type="module" src="/src/main.js"></script>
 
-  <!-- Prevent right-click context menu in game -->
   <script>document.addEventListener('contextmenu', e => e.preventDefault());</script>
-
 </body>
 </html>
