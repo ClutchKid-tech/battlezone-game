@@ -1,0 +1,184 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: battlezone-server
+  namespace: battlezone
+  labels:
+    app: battlezone-server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: battlezone-server
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: battlezone-server
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values: [battlezone-server]
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: server
+        image: YOUR_REGISTRY/battlezone-server:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: NODE_ENV
+          value: production
+        - name: PORT
+          value: "8080"
+        - name: TICK_RATE
+          value: "64"
+        - name: MIN_START_PLAYERS
+          value: "10"
+        - name: MAX_ROOMS
+          value: "20"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: battlezone-secrets
+              key: DATABASE_URL
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: battlezone-secrets
+              key: REDIS_URL
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: battlezone-secrets
+              key: JWT_SECRET
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: battlezone-secrets
+              key: STRIPE_SECRET_KEY
+        - name: STRIPE_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: battlezone-secrets
+              key: STRIPE_WEBHOOK_SECRET
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        lifecycle:
+          preStop:
+            exec:
+              # Give 30s for active matches to finish before pod is killed
+              command: ["sleep", "30"]
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: battlezone-server
+  namespace: battlezone
+spec:
+  selector:
+    app: battlezone-server
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: battlezone-ingress
+  namespace: battlezone
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-body-size:    "100k"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - play.battlezone.io
+    secretName: battlezone-tls
+  rules:
+  - host: play.battlezone.io
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: battlezone-server
+            port: { number: 80 }
+      - path: /socket.io
+        pathType: Prefix
+        backend:
+          service:
+            name: battlezone-server
+            port: { number: 80 }
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: battlezone-client
+            port: { number: 80 }
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: battlezone-server-hpa
+  namespace: battlezone
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: battlezone-server
+  minReplicas: 2
+  maxReplicas: 50
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 65
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 75

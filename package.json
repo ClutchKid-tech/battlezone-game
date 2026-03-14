@@ -1,0 +1,26 @@
+{
+  "name": "battlezone",
+  "version": "1.0.0",
+  "description": "Multiplayer 3D Battle Royale — monorepo root",
+  "private": true,
+  "scripts": {
+    "dev":           "docker-compose up --build",
+    "dev:server":    "cd server && npm run dev",
+    "dev:client":    "cd client && npm run dev",
+    "build:client":  "cd client && npm run build",
+    "test":          "cd server && npm test",
+    "test:unit":     "cd server && npm run test:unit",
+    "test:int":      "cd server && npm run test:int",
+    "install:all":   "cd server && npm ci && cd ../client && npm ci",
+    "lint":          "cd server && npm run lint",
+    "docker:up":     "docker-compose up --build -d",
+    "docker:down":   "docker-compose down",
+    "docker:logs":   "docker-compose logs -f",
+    "docker:reset":  "docker-compose down -v && docker-compose up --build -d",
+    "k8s:apply":     "kubectl apply -f k8s/deployment.yaml",
+    "k8s:secrets":   "kubectl create secret generic battlezone-secrets --from-env-file=.env --namespace=battlezone --dry-run=client -o yaml | kubectl apply -f -",
+    "k8s:namespace": "kubectl create namespace battlezone --dry-run=client -o yaml | kubectl apply -f -"
+  },
+  "workspaces": ["server", "client"],
+  "engines": { "node": ">=20.0.0" }
+}
