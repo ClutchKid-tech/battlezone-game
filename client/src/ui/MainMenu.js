@@ -54,10 +54,10 @@ const CSS = `
     position: absolute; top:0; left:0; right:0; height:36px; z-index:25;
     display:flex; align-items:center; justify-content:space-between;
     padding:0 32px;
-    background: linear-gradient(90deg, rgba(6,8,12,0.98) 0%, rgba(6,8,12,0.85) 50%, rgba(6,8,12,0.98) 100%);
-    border-bottom: 1px solid rgba(255,107,26,0.18);
+    background: linear-gradient(90deg, rgba(6,8,12,0.98) 0%, rgba(6,8,12,0.88) 50%, rgba(6,8,12,0.98) 100%);
+    border-bottom: 1px solid rgba(255,107,26,0.22);
     font-family: 'Share Tech Mono', monospace;
-    font-size: 10px; color: #4A4540; letter-spacing: 0.14em;
+    font-size: 10px; color: #8A8278; letter-spacing: 0.14em;
   }
   .mm-status-left, .mm-status-right { display:flex; align-items:center; gap:24px; }
   .mm-status-online { color: #2ECC71; }
@@ -404,13 +404,19 @@ const CSS = `
     color:#F0C040; opacity:0.8; margin-bottom:4px;
   }
   .mm-season-title {
-    font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.08em;
-    color:#F0C040;
-    text-shadow:0 0 20px rgba(240,192,64,0.4);
-    line-height:1;
+    font-family:'Bebas Neue',sans-serif; font-size:34px; letter-spacing:0.08em;
+    color:#F0C040; line-height:0.95;
+    text-shadow: 0 0 30px rgba(240,192,64,0.6),
+                 0 0 60px rgba(240,192,64,0.25),
+                 0 2px 0 rgba(0,0,0,0.9);
+    animation: mm-gold-pulse 3s ease-in-out infinite alternate;
+  }
+  @keyframes mm-gold-pulse {
+    from { text-shadow:0 0 20px rgba(240,192,64,0.5), 0 0 40px rgba(240,192,64,0.2), 0 2px 0 rgba(0,0,0,0.9); }
+    to   { text-shadow:0 0 45px rgba(240,192,64,0.8), 0 0 80px rgba(240,192,64,0.4), 0 2px 0 rgba(0,0,0,0.9); }
   }
   .mm-season-sub {
-    font-family:'Exo 2',sans-serif; font-size:10px; color:#8A7840; margin-top:4px;
+    font-family:'Exo 2',sans-serif; font-size:10px; color:#8A7840; margin-top:6px;
   }
   @keyframes mm-faderight {
     from { opacity:0; transform:translateX(16px); }
@@ -425,28 +431,13 @@ const CSS = `
     animation: mm-faderight 0.6s 0.2s ease both;
   }
   .mm-soldier-svg {
-    width:85%; max-height:420px;
-    filter: drop-shadow(0 0 18px rgba(255,107,26,0.55)) drop-shadow(0 0 40px rgba(255,107,26,0.25));
-    animation: mm-breathe 3.2s ease-in-out infinite;
+    width:88%; max-height:430px;
+    animation: mm-breathe 4s ease-in-out infinite;
     transform-origin: center bottom;
   }
   @keyframes mm-breathe {
-    0%,100% { transform:scaleY(1) scaleX(1); }
-    50%      { transform:scaleY(1.008) scaleX(0.999); }
-  }
-  .mm-soldier-season-badge {
-    position:absolute; top:28%; right:6%;
-    background:rgba(240,192,64,0.12);
-    border:1px solid rgba(240,192,64,0.4);
-    padding:6px 10px;
-    font-family:'Bebas Neue',sans-serif; font-size:14px; letter-spacing:0.12em;
-    color:#F0C040;
-    clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%);
-    animation: mm-badge-pulse 2.5s ease-in-out infinite;
-  }
-  @keyframes mm-badge-pulse {
-    0%,100% { box-shadow:0 0 8px rgba(240,192,64,0.2); }
-    50%      { box-shadow:0 0 20px rgba(240,192,64,0.45); }
+    0%,100% { transform:scaleY(1); }
+    50%      { transform:scaleY(1.005); }
   }
 
   /* Featured item card */
@@ -973,7 +964,6 @@ export default class MainMenu {
 
         <div class="mm-soldier-wrap">
           ${this._buildSoldierSVG()}
-          <div class="mm-soldier-season-badge">S1 ELITE</div>
         </div>
 
         <div class="mm-featured">
@@ -998,74 +988,169 @@ export default class MainMenu {
   }
 
   _buildSoldierSVG() {
+    // Pure dark military silhouette. All shapes #0A0C0E.
+    // Orange rim light via SVG feDropShadow (right-side only, dx=8).
+    // Angular helmet polygon. Right arm raised holding rifle. No circles, no eyes.
+    // S1 ELITE badge embedded on chest in gold.
     return `
-      <svg class="mm-soldier-svg" viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg" fill="none">
-        <!-- Boots -->
-        <rect x="72" y="390" width="22" height="28" rx="3" fill="#1A0E06"/>
-        <rect x="106" y="390" width="22" height="28" rx="3" fill="#1A0E06"/>
-        <rect x="68" y="385" width="26" height="10" rx="2" fill="#221208"/>
-        <rect x="106" y="385" width="26" height="10" rx="2" fill="#221208"/>
-        <!-- Lower legs -->
-        <rect x="74" y="320" width="20" height="70" rx="4" fill="#0F1A10"/>
-        <rect x="107" y="320" width="20" height="70" rx="4" fill="#0F1A10"/>
-        <!-- Knee pads -->
-        <rect x="72" y="340" width="24" height="14" rx="3" fill="#1E2820"/>
-        <rect x="105" y="340" width="24" height="14" rx="3" fill="#1E2820"/>
-        <!-- Thighs -->
-        <rect x="76" y="250" width="22" height="74" rx="5" fill="#131C14"/>
-        <rect x="104" y="250" width="22" height="74" rx="5" fill="#131C14"/>
-        <!-- Tactical vest / torso -->
-        <rect x="65" y="145" width="72" height="110" rx="8" fill="#0E1810"/>
-        <!-- Vest pockets -->
-        <rect x="70" y="160" width="20" height="14" rx="2" fill="#1A2618"/>
-        <rect x="112" y="160" width="20" height="14" rx="2" fill="#1A2618"/>
-        <rect x="70" y="180" width="20" height="12" rx="2" fill="#162014"/>
-        <rect x="112" y="180" width="20" height="12" rx="2" fill="#162014"/>
-        <!-- Belt -->
-        <rect x="65" y="248" width="72" height="10" rx="3" fill="#1C1008"/>
-        <!-- Ammo pouches -->
-        <rect x="70" y="250" width="14" height="12" rx="2" fill="#251A08"/>
-        <rect x="118" y="250" width="14" height="12" rx="2" fill="#251A08"/>
-        <!-- Arms -->
-        <rect x="36" y="148" width="28" height="80" rx="8" fill="#0E1810"/>
-        <rect x="138" y="148" width="28" height="80" rx="8" fill="#0E1810"/>
-        <!-- Gloves -->
-        <rect x="37" y="224" width="26" height="20" rx="5" fill="#0A0E0A"/>
-        <rect x="139" y="224" width="26" height="20" rx="5" fill="#0A0E0A"/>
-        <!-- Gun in right hand -->
-        <rect x="148" y="215" width="8" height="50" rx="2" fill="#0A0C0A"/>
-        <rect x="144" y="230" width="16" height="6" rx="1" fill="#141614"/>
-        <rect x="155" y="225" width="6" height="22" rx="1" fill="#0A0C0A"/>
-        <!-- Shoulders -->
-        <rect x="30" y="145" width="38" height="20" rx="6" fill="#162014"/>
-        <rect x="134" y="145" width="38" height="20" rx="6" fill="#162014"/>
-        <!-- Neck -->
-        <rect x="90" y="110" width="22" height="36" rx="4" fill="#0C1410"/>
-        <!-- Balaclava / head -->
-        <ellipse cx="101" cy="90" rx="35" ry="40" fill="#0A1208"/>
-        <!-- Helmet -->
-        <ellipse cx="101" cy="72" rx="36" ry="26" fill="#0E1810"/>
-        <rect x="65" y="82" width="72" height="16" rx="3" fill="#0E1810"/>
-        <!-- NVG mount -->
-        <rect x="88" y="58" width="28" height="10" rx="3" fill="#1A2018"/>
-        <rect x="82" y="65" width="12" height="14" rx="3" fill="#1E2820"/>
-        <rect x="108" y="65" width="12" height="14" rx="3" fill="#1E2820"/>
-        <!-- Goggles lenses glow -->
-        <ellipse cx="88" cy="72" rx="9" ry="7" fill="#0D1A10" stroke="#FF6B1A" stroke-width="1.5" opacity="0.7"/>
-        <ellipse cx="114" cy="72" rx="9" ry="7" fill="#0D1A10" stroke="#FF6B1A" stroke-width="1.5" opacity="0.7"/>
-        <ellipse cx="88" cy="72" rx="5" ry="4" fill="#FF6B1A" opacity="0.25"/>
-        <ellipse cx="114" cy="72" rx="5" ry="4" fill="#FF6B1A" opacity="0.25"/>
-        <!-- Helmet chin strap -->
-        <rect x="67" y="98" width="10" height="4" rx="2" fill="#0A0E08"/>
-        <rect x="125" y="98" width="10" height="4" rx="2" fill="#0A0E08"/>
-        <!-- Ear piece -->
-        <rect x="132" y="82" width="7" height="18" rx="3" fill="#1A2018"/>
-        <!-- Antenna -->
-        <line x1="136" y1="82" x2="132" y2="52" stroke="#3A4838" stroke-width="1.5"/>
-        <!-- Rim light highlight (orange edge) -->
-        <ellipse cx="101" cy="90" rx="35" ry="40" fill="none" stroke="#FF6B1A" stroke-width="1" opacity="0.35"/>
-        <rect x="65" y="145" width="3" height="110" rx="1" fill="#FF6B1A" opacity="0.25"/>
-        <rect x="134" y="145" width="3" height="110" rx="1" fill="#FF6B1A" opacity="0.2"/>
+      <svg class="mm-soldier-svg" viewBox="0 0 260 530" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="mm-rim" x="-30%" y="-5%" width="165%" height="115%">
+            <feDropShadow dx="8" dy="0" stdDeviation="6"
+              flood-color="#FF6B1A" flood-opacity="0.82" result="drop"/>
+            <feDropShadow dx="4" dy="0" stdDeviation="3"
+              flood-color="#FF9B50" flood-opacity="0.45"/>
+          </filter>
+        </defs>
+
+        <!-- ── FULL SILHOUETTE ── all #0A0C0E, rim from filter -->
+        <g fill="#0A0C0E" filter="url(#mm-rim)">
+
+          <!-- BOOT SOLES -->
+          <rect x="22" y="514" width="80" height="10"/>
+          <rect x="114" y="514" width="70" height="10"/>
+
+          <!-- BOOTS -->
+          <polygon points="28,498 98,498 100,516 26,516"/>
+          <polygon points="116,498 180,498 182,516 114,516"/>
+
+          <!-- SHINS -->
+          <polygon points="34,397 90,397 93,500 31,500"/>
+          <polygon points="120,397 170,397 174,500 118,500"/>
+
+          <!-- KNEE PADS -->
+          <rect x="30" y="360" width="63" height="24"/>
+          <rect x="118" y="360" width="58" height="24"/>
+
+          <!-- THIGHS (wide combat stance) -->
+          <polygon points="38,292 96,292 93,402 35,402"/>
+          <polygon points="120,292 174,292 176,402 118,402"/>
+
+          <!-- BELT -->
+          <rect x="34" y="279" width="152" height="15"/>
+
+          <!-- HIP POUCHES -->
+          <rect x="36" y="288" width="26" height="24"/>
+          <rect x="158" y="288" width="26" height="24"/>
+
+          <!-- TORSO / PLATE CARRIER (trapezoid, slightly wider at shoulder) -->
+          <polygon points="42,144 196,144 192,281 38,281"/>
+
+          <!-- CHEST MOLLE POUCHES — 3 rows -->
+          <rect x="56" y="157" width="27" height="19"/>
+          <rect x="89" y="157" width="30" height="19"/>
+          <rect x="126" y="157" width="27" height="19"/>
+          <rect x="56" y="180" width="27" height="17"/>
+          <rect x="89" y="180" width="30" height="17"/>
+          <rect x="126" y="180" width="27" height="17"/>
+          <rect x="56" y="201" width="27" height="15"/>
+          <rect x="126" y="201" width="27" height="15"/>
+
+          <!-- SHOULDER PADS -->
+          <polygon points="8,144 64,144 60,186 4,194"/>
+          <polygon points="190,144 232,144 234,194 188,186"/>
+
+          <!-- NECK -->
+          <rect x="108" y="111" width="28" height="35"/>
+
+          <!-- HEAD — tight balaclava wrap, angular polygon, NO circles -->
+          <polygon points="80,68 178,68 180,113 78,113"/>
+
+          <!-- HELMET DOME — angular ACH polygon, NOT an ellipse -->
+          <polygon points="78,68 82,40 97,16 124,8 152,16 168,40 172,68"/>
+
+          <!-- HELMET BRIM (forward visor, flat top) -->
+          <polygon points="64,54 192,54 194,72 62,72"/>
+
+          <!-- NVG MOUNT PLATE -->
+          <rect x="106" y="36" width="38" height="16"/>
+
+          <!-- NVG TUBES — angled rectangles, NOT circles -->
+          <polygon points="104,48 122,48 124,72 102,72"/>
+          <polygon points="128,48 148,48 150,72 126,72"/>
+
+          <!-- HELMET SIDE ARC-RAILS -->
+          <rect x="72" y="42" width="11" height="30"/>
+          <rect x="151" y="42" width="11" height="30"/>
+
+          <!-- COMMS HEADSET (right side) -->
+          <rect x="162" y="52" width="18" height="28"/>
+          <rect x="168" y="40" width="8" height="18"/>
+
+          <!-- CHIN STRAP -->
+          <rect x="64" y="66" width="14" height="28"/>
+          <rect x="156" y="66" width="14" height="28"/>
+
+          <!-- LEFT ARM — down at side, slight forward lean -->
+          <polygon points="4,194 60,186 56,260 0,268"/>
+          <polygon points="0,260 55,252 51,326 0,332"/>
+          <!-- Left glove -->
+          <polygon points="0,323 51,317 49,346 0,350"/>
+
+          <!-- RIGHT ARM — raised, elbow bent up, hand at rifle stock area -->
+          <!-- Upper arm goes from shoulder up-right -->
+          <polygon points="186,186 230,192 226,148 182,142"/>
+          <!-- Forearm continues up to hand -->
+          <polygon points="180,142 225,146 221,106 177,102"/>
+          <!-- Glove / hand gripping stock -->
+          <polygon points="175,100 222,102 220,128 173,126"/>
+
+          <!-- ═══════════════════════════════
+               RIFLE — left-pointing, almost horizontal, slight rise
+               Stock at right shoulder, long barrel to left
+          ═══════════════════════════════ -->
+
+          <!-- STOCK (at right shoulder) -->
+          <polygon points="216,114 258,120 256,138 214,132"/>
+
+          <!-- RECEIVER BODY -->
+          <polygon points="170,116 220,112 218,134 168,134"/>
+
+          <!-- CARRYING HANDLE / TOP RAIL -->
+          <rect x="172" y="104" width="48" height="14"/>
+
+          <!-- SCOPE BODY -->
+          <rect x="175" y="100" width="44" height="16"/>
+          <!-- Scope front lens shroud -->
+          <rect x="173" y="101" width="8" height="14"/>
+          <!-- Scope rear lens shroud -->
+          <rect x="210" y="101" width="8" height="14"/>
+
+          <!-- BARREL (long, left-pointing) -->
+          <polygon points="24,122 174,116 174,128 24,128"/>
+
+          <!-- MUZZLE BRAKE / COMPENSATOR -->
+          <polygon points="10,120 28,120 28,130 10,130"/>
+          <rect x="14" y="116" width="8" height="6"/>
+
+          <!-- MAGAZINE (hangs below receiver) -->
+          <polygon points="180,134 200,134 198,174 178,174"/>
+
+          <!-- PISTOL GRIP (trigger guard area) -->
+          <polygon points="196,134 214,134 212,162 194,162"/>
+
+          <!-- RAIL UNDERSIDE / HANDGUARD -->
+          <rect x="88" y="128" width="84" height="7"/>
+
+          <!-- VERTICAL FORE-GRIP (below barrel, tactical) -->
+          <polygon points="52,128 68,128 66,150 50,150"/>
+
+          <!-- GAS BLOCK / SIGHT (small bump on barrel) -->
+          <rect x="130" y="118" width="12" height="8"/>
+
+        </g>
+
+        <!-- ── S1 ELITE BADGE — ON CHEST (gold, outside filter so it stays gold) ── -->
+        <rect x="82" y="222" width="60" height="22" rx="1"
+          fill="rgba(240,192,64,0.10)" stroke="#F0C040" stroke-width="0.9" opacity="0.88"/>
+        <text x="112" y="237"
+          font-family="'Bebas Neue',Arial,sans-serif"
+          font-size="11" fill="#F0C040" text-anchor="middle" letter-spacing="2">S1 ELITE</text>
+
+        <!-- RADIO ANTENNA (thin wire on helmet) -->
+        <line x1="170" y1="52" x2="188" y2="10"
+          stroke="#1C2018" stroke-width="2"/>
+
       </svg>
     `;
   }
@@ -1365,32 +1450,94 @@ export default class MainMenu {
     ctx.fillStyle = hGlow;
     ctx.fillRect(0, 0, W, H);
 
-    // Distant building ruins silhouette
-    ctx.fillStyle = '#050707';
-    const ruins = [
-      [0.06,0.58,0.04,0.12], [0.10,0.60,0.02,0.06], [0.12,0.56,0.03,0.10],
-      [0.16,0.59,0.025,0.07],[0.20,0.55,0.04,0.12], [0.25,0.57,0.02,0.09],
-      [0.72,0.56,0.05,0.13], [0.78,0.59,0.03,0.08], [0.82,0.55,0.04,0.12],
-      [0.87,0.58,0.025,0.07],[0.91,0.56,0.03,0.10], [0.95,0.60,0.02,0.06],
+    // Distant building ruins silhouette — deterministic so no flicker on redraw
+    // [x, y, w, h, notchSeeds[], windowLit[]]
+    const RUINS = [
+      { x:0.04, y:0.575, w:0.044, h:0.125, notches:[[0.05,0.25],[0.45,0.18],[0.7,0.30]], wlit:[0,2] },
+      { x:0.09, y:0.598, w:0.022, h:0.072, notches:[[0.2,0.22],[0.6,0.28]],              wlit:[] },
+      { x:0.115,y:0.558, w:0.034, h:0.112, notches:[[0.1,0.20],[0.55,0.25],[0.8,0.18]],  wlit:[1] },
+      { x:0.155,y:0.588, w:0.026, h:0.082, notches:[[0.3,0.22]],                          wlit:[0] },
+      { x:0.19, y:0.548, w:0.044, h:0.130, notches:[[0.05,0.28],[0.5,0.20],[0.75,0.26]], wlit:[2] },
+      { x:0.245,y:0.570, w:0.022, h:0.095, notches:[[0.2,0.25],[0.65,0.22]],              wlit:[] },
+      { x:0.70, y:0.548, w:0.050, h:0.135, notches:[[0.1,0.26],[0.45,0.18],[0.72,0.30]], wlit:[0,1] },
+      { x:0.758,y:0.588, w:0.030, h:0.082, notches:[[0.3,0.24]],                          wlit:[1] },
+      { x:0.798,y:0.548, w:0.042, h:0.122, notches:[[0.08,0.20],[0.5,0.26],[0.78,0.22]], wlit:[2] },
+      { x:0.848,y:0.572, w:0.026, h:0.090, notches:[[0.2,0.28],[0.6,0.22]],              wlit:[] },
+      { x:0.882,y:0.558, w:0.036, h:0.112, notches:[[0.15,0.24],[0.55,0.20]],             wlit:[0] },
+      { x:0.926,y:0.592, w:0.022, h:0.068, notches:[[0.3,0.22]],                          wlit:[1] },
     ];
-    for (const [rx, ry, rw, rh] of ruins) {
-      // Building body
-      ctx.fillRect(rx*W, ry*H, rw*W, rh*H);
-      // Destroyed top edge — random notches
+
+    for (const b of RUINS) {
+      const bx = b.x*W, by = b.y*H, bw = b.w*W, bh = b.h*H;
+
+      // Main building body
+      ctx.fillStyle = '#050707';
+      ctx.fillRect(bx, by, bw, bh);
+
+      // Notched / destroyed top edge
       ctx.fillStyle = '#060809';
-      for (let n = 0; n < 4; n++) {
-        const nx = rx*W + Math.random()*rw*W*0.8;
-        const nw = rw*W*0.15 + Math.random()*rw*W*0.2;
-        const nh = rh*H*0.3 + Math.random()*rh*H*0.3;
-        ctx.fillRect(nx, ry*H, nw, nh);
+      for (const [ns, nw] of b.notches) {
+        ctx.fillRect(bx + ns*bw, by, nw*bw, bh*0.28 + nw*bh*0.6);
       }
-      ctx.fillStyle = '#050707';
-      // Window lights (faint orange)
-      ctx.fillStyle = 'rgba(255,120,40,0.07)';
-      for (let w = 0; w < 3; w++) {
-        ctx.fillRect(rx*W + w*rw*W*0.28 + rw*W*0.08, ry*H + rh*H*0.3, rw*W*0.12, rh*H*0.18);
+
+      // Diagonal crack on wall (thin dark line)
+      ctx.strokeStyle = '#060809';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(bx + bw*0.35, by + bh*0.2);
+      ctx.lineTo(bx + bw*0.55, by + bh*0.65);
+      ctx.stroke();
+
+      // Windows — 3 columns, 2 rows of window grid
+      const cols = 3, rows = 2;
+      const ww = bw * 0.14, wh = bh * 0.14;
+      const wGapX = (bw - cols*ww) / (cols + 1);
+      const wGapY = bh * 0.15;
+      const wStartY = by + bh * 0.32;
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const wx = bx + wGapX*(col+1) + col*ww;
+          const wy = wStartY + row*(wh + wGapY);
+          const idx = row*cols + col;
+          const isLit = b.wlit.includes(idx);
+          const isBroken = (idx % 4 === 2); // some windows broken
+
+          // Window frame (slightly lighter dark)
+          ctx.fillStyle = '#080A0A';
+          ctx.fillRect(wx - 1, wy - 1, ww + 2, wh + 2);
+
+          // Window interior
+          if (isLit) {
+            // Warm orange glow — fire inside
+            ctx.fillStyle = 'rgba(255,100,20,0.12)';
+          } else if (isBroken) {
+            // Dark void / broken out
+            ctx.fillStyle = '#020304';
+          } else {
+            // Dark glass
+            ctx.fillStyle = '#040608';
+          }
+          ctx.fillRect(wx, wy, ww, wh);
+
+          if (isLit) {
+            // Inner glow core
+            ctx.fillStyle = 'rgba(255,140,40,0.08)';
+            ctx.fillRect(wx + ww*0.2, wy + wh*0.2, ww*0.6, wh*0.6);
+          }
+
+          if (isBroken) {
+            // Jagged broken glass line across window
+            ctx.strokeStyle = '#060809';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(wx, wy + wh*0.3);
+            ctx.lineTo(wx + ww*0.4, wy + wh*0.7);
+            ctx.lineTo(wx + ww, wy + wh*0.1);
+            ctx.stroke();
+          }
+        }
       }
-      ctx.fillStyle = '#050707';
     }
 
     // Tactical grid
