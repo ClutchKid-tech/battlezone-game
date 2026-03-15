@@ -112,12 +112,13 @@ export default class NetworkManager {
       transports: ['websocket'],
     });
 
-    this._mmSocket.on('connect',              () => this._emit('mm:connected'));
-    this._mmSocket.on('matchmaking:queued',   (d) => this._emit('mm:queued',   d));
-    this._mmSocket.on('matchmaking:matched',  (d) => this._emit('mm:matched',  d));
-    this._mmSocket.on('matchmaking:cancelled',(d) => this._emit('mm:cancelled',d));
-    this._mmSocket.on('matchmaking:error',    (d) => this._emit('mm:error',    d));
-    this._mmSocket.on('matchmaking:status',   (d) => this._emit('mm:status',   d));
+    this._mmSocket.on('connect',        () => this._emit('mm:connected'));
+    this._mmSocket.on('mm:queued',      (d) => this._emit('mm:queued',     d));
+    this._mmSocket.on('mm:found',       (d) => this._emit('mm:found',      d));
+    this._mmSocket.on('mm:match_ready', (d) => this._emit('mm:matched',    d));
+    this._mmSocket.on('mm:left',        (d) => this._emit('mm:cancelled',  d));
+    this._mmSocket.on('mm:error',       (d) => this._emit('mm:error',      d));
+    this._mmSocket.on('mm:requeued',    (d) => this._emit('mm:requeued',   d));
     this._mmSocket.on('disconnect', () => this._emit('mm:disconnected'));
   }
 
@@ -215,11 +216,11 @@ export default class NetworkManager {
   // ─────────────────────────────────────────────────────────────────────
 
   joinQueue(mode, region) {
-    this._mmSocket?.emit('matchmaking:join', { mode, region });
+    this._mmSocket?.emit('mm:join', { mode, region });
   }
 
   leaveQueue() {
-    this._mmSocket?.emit('matchmaking:leave');
+    this._mmSocket?.emit('mm:leave');
   }
 
   // ─────────────────────────────────────────────────────────────────────

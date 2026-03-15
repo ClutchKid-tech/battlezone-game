@@ -1167,15 +1167,15 @@ export default class MainMenu {
     }, 1000);
     screen._queueTimer = timer;
 
-    this.network?.joinQueue?.({
-      mode: this._selectedMode,
-      region: this._selectedRegion,
-    });
+    this.network?.joinQueue?.(this._selectedMode, this._selectedRegion);
 
-    this.network?.once?.('mm:matched', (data) => {
-      clearInterval(timer);
-      this._onPlayCb?.(data);
-    });
+    if (this.network) {
+      const offMatched = this.network.on('mm:matched', (data) => {
+        clearInterval(timer);
+        offMatched?.();
+        this._onPlayCb?.(data);
+      });
+    }
   }
 
   /* ─── Stats screen ─── */

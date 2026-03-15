@@ -58,6 +58,7 @@ async function init() {
     localUserId   = r.userId;
     localUsername = r.username;
     api.setToken(token);
+    network.connectMatchmaking(token);
     transitionTo('menu');
   });
 
@@ -69,6 +70,7 @@ async function init() {
     localUserId   = u.id;
     localUsername = u.username;
     api.setToken(token);
+    network.connectMatchmaking(token);
   }
 
   // Core 3D systems — wrapped so a WebGL failure doesn't break auth
