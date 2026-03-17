@@ -3,3 +3,13 @@ dist/
 .env
 *.DS_Store
 .vercel
+
+# Unity
+Unity-client/Library/
+Unity-client/Temp/
+Unity-client/Logs/
+Unity-client/Builds/
+Unity-client/UserSettings/
+Unity-client/.vs/
+Unity-client/*.csproj
+Unity-client/*.sln
