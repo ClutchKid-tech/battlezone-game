@@ -1,0 +1,14 @@
+{
+    "name": "Alexanderrexking.Comunitynugetnewtonsoftjson.Editor.Tests",
+    "references": [
+        "Alexanderrexking.Comunitynugetnewtonsoftjson.Editor",
+        "Alexanderrexking.Comunitynugetnewtonsoftjson"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": []
+}

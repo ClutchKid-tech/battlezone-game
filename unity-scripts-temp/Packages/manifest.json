@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "com.unity.ugui": "2.0.0",
+    "com.unity.textmeshpro": "3.0.9",
+    "com.unity.inputsystem": "1.8.2",
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "com.unity.render-pipelines.universal": "17.0.3"
+  },
+  "scopedRegistries": [
+    {
+      "name": "package.openupm.com",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.unity.socketio",
+        "com.izifortune.socketio"
+      ]
+    }
+  ]
+}

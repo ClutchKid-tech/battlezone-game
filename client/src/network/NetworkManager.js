@@ -114,7 +114,7 @@ export default class NetworkManager {
 
     this._mmSocket.on('connect',        () => this._emit('mm:connected'));
     this._mmSocket.on('mm:queued',      (d) => this._emit('mm:queued',     d));
-    this._mmSocket.on('mm:found',       (d) => this._emit('mm:found',      d));
+    this._mmSocket.on('mm:found',       (d) => { this._emit('mm:found', d); this._mmSocket.emit('mm:accept', { lobbyId: d.lobbyId }); });
     this._mmSocket.on('mm:match_ready', (d) => this._emit('mm:matched',    d));
     this._mmSocket.on('mm:left',        (d) => this._emit('mm:cancelled',  d));
     this._mmSocket.on('mm:error',       (d) => this._emit('mm:error',      d));

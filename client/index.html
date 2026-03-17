@@ -637,6 +637,33 @@
       } catch(e) {}
     })();
 
+    /* ─── DEV MODE: ?dev=1 skips login + auto-starts game ─── */
+    (function () {
+      if (!new URLSearchParams(window.location.search).has('dev')) return;
+      try {
+        const stored = sessionStorage.getItem('bz_session');
+        if (!stored) { window.location.href = '/dev.html'; return; }
+        const { token, user } = JSON.parse(stored);
+        sessionStorage.setItem('token', token);
+        sessionStorage.setItem('user', JSON.stringify({ id: user.id, username: user.username }));
+        document.getElementById('auth-screen').style.display = 'none';
+        // Fire auth:success immediately once page scripts load
+        window.addEventListener('load', () => {
+          window.dispatchEvent(new CustomEvent('auth:success', {
+            detail: { access: token, userId: user.id, username: user.username }
+          }));
+          // Also auto-join queue after main menu shows
+          setTimeout(() => {
+            const roomId = new URLSearchParams(window.location.search).get('room');
+            if (roomId) {
+              // Directly trigger lobby with the room we already matched into
+              window.dispatchEvent(new CustomEvent('dev:room', { detail: { roomId } }));
+            }
+          }, 500);
+        });
+      } catch(e) { window.location.href = '/dev.html'; }
+    })();
+
     /* ─── PARTICLE / TERRAIN BACKGROUND ─── */
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');

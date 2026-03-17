@@ -1,0 +1,20 @@
+# WeaponStats ScriptableObject — M4A1 Assault Rifle
+# Create via: Assets > Create > BattleZone > Weapon Stats
+#
+# Fill in these values in the Unity Inspector:
+#
+# weaponId:        ar_m4a1
+# displayName:     M4A1
+# weaponClass:     AssaultRifle
+# fireMode:        Auto
+# fireRate:        750
+# damage:          25
+# headshotMult:    2
+# range:           220
+# bulletSpread:    0.6
+# magazineSize:    30
+# reserveAmmo:     90
+# reloadTime:      2.0
+# adsZoom:         1.5
+# recoilUp:        1.5
+# recoilSide:      0.4

@@ -5,13 +5,13 @@ const { getRedis } = require('../db/redis');
 
 // Matchmaking queue config
 const QUEUE_FLUSH_INTERVAL_MS  = 2000;   // Check queues every 2 seconds
-const LOBBY_FILL_TIMEOUT_MS    = 45_000; // Start with min players after 45s
+const LOBBY_FILL_TIMEOUT_MS    = 10_000; // Start with min players after 10s
 const SQUAD_SIZE = { solo: 1, duo: 2, squad: 4 };
 const MATCH_SIZE = { solo: 100, duo: 100, squad: 100 };  // 100 players per match always
 const MIN_PLAYERS_TO_START = parseInt(process.env.MIN_START_PLAYERS || '2', 10);
 
 // Regions
-const REGIONS = ['na', 'eu', 'apac', 'sa', 'me'];
+const REGIONS = ['na', 'eu', 'apac', 'sa', 'me', 'us-east', 'us-west', 'auto'];
 
 class MatchmakingService {
   constructor(gameServer) {
@@ -21,6 +21,14 @@ class MatchmakingService {
     for (const r of REGIONS) {
       this.queues[r] = { solo: [], duo: [], squad: [] };
     }
+    // Also allow any region key dynamically
+    const _origHandleJoin = this._handleJoin.bind(this);
+    this._handleJoin = (socket, userId, username, data) => {
+      if (data?.region && !this.queues[data.region]) {
+        this.queues[data.region] = { solo: [], duo: [], squad: [] };
+      }
+      _origHandleJoin(socket, userId, username, data);
+    };
     // Pending lobbies waiting to fill: lobbyId → { players, mode, region, createdAt }
     this.pendingLobbies = new Map();
 
@@ -43,10 +51,11 @@ class MatchmakingService {
   _handleJoin(socket, userId, username, data) {
     const { mode, region, squadId } = data;
 
-    if (!REGIONS.includes(region)) {
+    if (!region) {
       socket.emit('mm:error', { code: 'INVALID_REGION' });
       return;
     }
+    if (!this.queues[region]) this.queues[region] = { solo: [], duo: [], squad: [] };
     if (!SQUAD_SIZE[mode]) {
       socket.emit('mm:error', { code: 'INVALID_MODE' });
       return;
@@ -84,76 +93,44 @@ class MatchmakingService {
   // ─────────────────────────────────────────────────────────────────────
 
   _flushQueues() {
-    for (const region of REGIONS) {
-      for (const mode of ['solo', 'duo', 'squad']) {
-        this._tryFormMatch(region, mode);
-      }
-    }
+    try {
+      const allRegions = Object.keys(this.queues);
+      let totalPlayers = 0;
+      for (const r of allRegions) for (const m of ['solo','duo','squad']) totalPlayers += (this.queues[r]?.[m]?.length || 0);
+      if (totalPlayers > 0) console.log(`[MM] flush tick — ${totalPlayers} player(s) in queue`);
 
-    // Check for timed-out pending lobbies (players didn't accept)
-    for (const [lobbyId, lobby] of this.pendingLobbies) {
-      if (Date.now() - lobby.createdAt > 15_000) {
-        // Re-queue players who accepted; drop those who didn't
-        for (const p of lobby.players) {
-          if (p.accepted) {
-            this.queues[lobby.region][lobby.mode].unshift(p);  // priority re-queue
-          } else {
-            p.socket?.emit('mm:timeout', { lobbyId });
+      for (const region of allRegions) {
+        for (const mode of ['solo', 'duo', 'squad']) {
+          if (this.queues[region] && this.queues[region][mode]) {
+            this._tryFormMatch(region, mode);
           }
         }
-        this.pendingLobbies.delete(lobbyId);
       }
+    } catch (err) {
+      console.error('[MM] _flushQueues error:', err);
     }
   }
 
   _tryFormMatch(region, mode) {
     const queue = this.queues[region][mode];
-    if (queue.length === 0) return;
+    if (!queue || queue.length < MIN_PLAYERS_TO_START) return;
 
-    const target = MATCH_SIZE[mode];
+    // Take up to MATCH_SIZE players, but start as soon as MIN_PLAYERS_TO_START are ready
+    const taken = queue.splice(0, Math.min(queue.length, MATCH_SIZE[mode]));
+    const lobbyId = uuidv4();
 
-    // Force-start if queue has been waiting too long
-    const oldestEntry = queue[0];
-    const forceStart = queue.length >= MIN_PLAYERS_TO_START &&
-      Date.now() - oldestEntry.joinedAt > LOBBY_FILL_TIMEOUT_MS;
+    const players = taken.map(e => ({
+      userId:   e.userId,
+      username: e.username,
+      squadId:  e.squadId,
+      socket:   e.socket,
+      accepted: false,
+    }));
 
-    if (queue.length >= target || forceStart) {
-      const taken = queue.splice(0, Math.min(queue.length, target));
-      const lobbyId = uuidv4();
+    console.log(`[MM] Forming lobby for ${region}/${mode} with ${players.length} players`);
 
-      const players = taken.map(e => ({
-        userId:   e.userId,
-        username: e.username,
-        squadId:  e.squadId,
-        socket:   e.socket,
-        accepted: false,
-      }));
-
-      const lobby = { lobbyId, players, mode, region, createdAt: Date.now() };
-      this.pendingLobbies.set(lobbyId, lobby);
-
-      // Notify all players that a match was found
-      for (const p of players) {
-        p.socket?.emit('mm:found', {
-          lobbyId,
-          mode,
-          region,
-          playerCount: players.length,
-        });
-      }
-
-      // In production you'd wait for mm:accept from all players
-      // For simplicity, auto-accept after 3 seconds
-      setTimeout(() => {
-        const l = this.pendingLobbies.get(lobbyId);
-        if (l) {
-          l.players.forEach(p => { p.accepted = true; });
-          this._launchMatch(l);
-        }
-      }, 3000);
-
-      console.log(`[MM] Formed lobby ${lobbyId} for ${region}/${mode} with ${players.length} players`);
-    }
+    // Launch immediately — no accept handshake needed
+    this._launchMatch({ lobbyId, players, mode, region, createdAt: Date.now() });
   }
 
   _launchMatch(lobby) {
@@ -176,7 +153,7 @@ class MatchmakingService {
 
       this._publishMatchStarted(roomId, lobby);
     } catch (err) {
-      console.error(`[MM] Failed to create room: ${err.message}`);
+      console.error(`[MM] Failed to create room:`, err);
       // Re-queue players
       for (const p of lobby.players) {
         this.queues[lobby.region][lobby.mode].unshift({ ...p, joinedAt: Date.now() });

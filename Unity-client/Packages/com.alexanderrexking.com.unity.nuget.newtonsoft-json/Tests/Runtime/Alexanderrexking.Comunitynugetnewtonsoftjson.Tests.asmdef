@@ -1,0 +1,11 @@
+{
+    "name": "Alexanderrexking.Comunitynugetnewtonsoftjson.Tests",
+    "references": [
+        "Alexanderrexking.Comunitynugetnewtonsoftjson"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": []
+}

@@ -62,6 +62,12 @@ async function init() {
     transitionTo('menu');
   });
 
+  // Dev mode: skip menu and go straight into a room
+  window.addEventListener('dev:room', (e) => {
+    const { roomId: devRoomId } = e.detail;
+    if (devRoomId) transitionTo('lobby', { roomId: devRoomId });
+  });
+
   const savedToken = sessionStorage.getItem('token');
   const savedUser  = sessionStorage.getItem('user');
   if (savedToken && savedUser) {

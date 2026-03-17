@@ -53,7 +53,7 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
       CLIENT_ORIGIN:    ${CLIENT_ORIGIN:-http://localhost:3000}
       TICK_RATE:        64
-      MIN_START_PLAYERS: 10
+      MIN_START_PLAYERS: 1
     depends_on:
       postgres:
         condition: service_healthy
@@ -79,6 +79,7 @@ services:
     restart: unless-stopped
     ports:
       - "3000:80"
+      - "8000:80"
     depends_on:
       - server
 

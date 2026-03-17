@@ -37,10 +37,10 @@ async function socketAuth(socket, next) {
     // Check ban status
     const db = getPostgres();
     const { rows } = await db.query(
-      'SELECT banned FROM users WHERE id = $1',
+      'SELECT is_banned FROM users WHERE id = $1',
       [payload.sub]
     );
-    if (rows[0]?.banned) return next(new Error('BANNED'));
+    if (rows[0]?.is_banned) return next(new Error('BANNED'));
 
     next();
   } catch (err) {

@@ -1,0 +1,10 @@
+{
+    "name": "Alexanderrexking.Comunitynugetnewtonsoftjson.Editor",
+    "references": [
+      "Alexanderrexking.Comunitynugetnewtonsoftjson"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": []
+}

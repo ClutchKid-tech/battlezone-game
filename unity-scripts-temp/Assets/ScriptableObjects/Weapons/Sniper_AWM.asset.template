@@ -1,0 +1,18 @@
+# WeaponStats ScriptableObject — AWM Sniper Rifle
+# Create via: Assets > Create > BattleZone > Weapon Stats
+#
+# weaponId:        sniper_awm
+# displayName:     AWM
+# weaponClass:     Sniper
+# fireMode:        SemiAuto
+# fireRate:        40
+# damage:          105
+# headshotMult:    2.5
+# range:           800
+# bulletSpread:    0.05
+# magazineSize:    5
+# reserveAmmo:     20
+# reloadTime:      3.5
+# adsZoom:         8
+# recoilUp:        6
+# recoilSide:      0.2

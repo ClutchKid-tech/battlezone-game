@@ -1,0 +1,8 @@
+﻿<Solution>
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Alexanderrexking.Comunitynugetnewtonsoftjson.Tests.csproj" />
+  <Project Path="Alexanderrexking.Comunitynugetnewtonsoftjson.csproj" />
+  <Project Path="Alexanderrexking.Comunitynugetnewtonsoftjson.Editor.Tests.csproj" />
+  <Project Path="Alexanderrexking.Comunitynugetnewtonsoftjson.Editor.csproj" />
+</Solution>

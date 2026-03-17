@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BattleZone DEV</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #060809; color: #FF6B1A; font-family: 'Share Tech Mono', monospace; display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; gap: 12px; }
+  #status { font-size: 14px; letter-spacing: 0.2em; }
+  #bar { width: 200px; height: 2px; background: #111; }
+  #fill { height: 2px; background: #FF6B1A; width: 0%; transition: width 0.3s; }
+</style>
+</head>
+<body>
+<div id="status">INITIALIZING DEV MODE...</div>
+<div id="bar"><div id="fill"></div></div>
+<script>
+(async () => {
+  const set = (msg, pct) => { document.getElementById('status').textContent = msg; document.getElementById('fill').style.width = pct + '%'; };
+
+  // Random dev username so multiple tabs don't clash
+  const name = 'dev_' + Math.random().toString(36).slice(2, 7);
+  const pass  = 'devpass99';
+  const email = name + '@dev.local';
+
+  set('REGISTERING DEV ACCOUNT...', 20);
+
+  let token, userId, username;
+
+  // Try register, fall back to login
+  let res = await fetch('/api/auth/register', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: name, email, password: pass })
+  });
+  let data = await res.json();
+
+  if (!data.access) {
+    set('LOGGING IN...', 40);
+    res = await fetch('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usernameOrEmail: name, password: pass })
+    });
+    data = await res.json();
+  }
+
+  if (!data.access) { set('AUTH FAILED: ' + JSON.stringify(data), 0); return; }
+
+  token    = data.access;
+  userId   = data.userId;
+  username = data.username;
+
+  set('AUTH OK — STORING SESSION...', 60);
+
+  // Store exactly as main.js expects
+  sessionStorage.setItem('bz_session', JSON.stringify({ token, user: { id: userId, username } }));
+
+  set('JOINING MATCHMAKING...', 80);
+
+  // Connect to matchmaking and join queue
+  const script = document.createElement('script');
+  script.src = '/assets/socket.io.min.js';
+
+  // Use socket.io from CDN since we can't import ES modules here
+  const ioScript = document.createElement('script');
+  ioScript.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
+  ioScript.onload = () => {
+    const mm = io('/matchmaking', { auth: { token }, transports: ['websocket'] });
+    mm.on('connect', () => {
+      set('CONNECTED — FINDING MATCH...', 90);
+      mm.emit('mm:join', { mode: 'solo', region: 'us-east' });
+    });
+    mm.on('mm:queued', () => set('IN QUEUE — WAITING FOR GAME START...', 95));
+    mm.on('mm:match_ready', (d) => {
+      set('MATCH FOUND — LAUNCHING...', 100);
+      // Store roomId then redirect to main game
+      sessionStorage.setItem('bz_dev_room', d.roomId);
+      mm.disconnect();
+      window.location.href = '/?dev=1&room=' + d.roomId;
+    });
+    mm.on('connect_error', e => set('SOCKET ERROR: ' + e.message, 0));
+  };
+  document.head.appendChild(ioScript);
+})();
+</script>
+</body>
+</html>
